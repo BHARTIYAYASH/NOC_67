@@ -1,0 +1,122 @@
+{% extends 'main_app/base.html' %}
+{% load static %}
+{% block page_title %}{{page_title}}{% endblock page_title %}
+{% block content %}
+<section class="content">
+    <div class="container-fluid">
+        <!-- Small boxes (Stat box) -->
+        <div class="row">
+            {% for subject in subject_attendance %}
+            <div class="col-lg-3 col-6">
+                <!-- small box -->
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3>{{ subject.percent_present }}<sup style="font-size: 20px">%</sup></h3>
+                        <p>{{ subject.subject }}</p>
+                    </div>
+                    <div class="icon">
+                        <i class="ion ion-stats-bars"></i>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-6">
+                <!-- DONUT CHART -->
+                <div class="card card-secondary">
+                    <div class="card-header">
+                        <h3 class="card-title">Overall Attendance</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+                            <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="attendanceData" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="card card-secondary">
+                    <div class="card-header">
+                        <h3 class="card-title">Subject-wise Attendance</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+                            <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart">
+                            <canvas id="attendanceStatistics" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock content %}
+
+{% block custom_js %}
+<script>
+$(document).ready(function(){
+    // Dataset
+    var subjects = {{ data_name|safe }};
+    var data_present = {{ data_present }};
+    var data_absent = {{ data_absent }};
+
+    // Donut Chart for Overall Attendance
+    var attendanceDataCanvas = $('#attendanceData').get(0).getContext('2d');
+    var donutData = {
+        labels: ['Present', 'Absent'],
+        datasets: [{
+            data: [{{ percent_present }}, {{ percent_absent }}],
+            backgroundColor: ['#00a65a', '#f56954'],
+        }]
+    };
+    var donutOptions = {
+        maintainAspectRatio: false,
+        responsive: true,
+    };
+    var attendanceData = new Chart(attendanceDataCanvas, {
+        type: 'doughnut',
+        data: donutData,
+        options: donutOptions      
+    });
+
+    // Bar Chart for Subject-wise Attendance
+    var barChartCanvas = $('#attendanceStatistics').get(0).getContext('2d');
+    var barChartData = {
+        labels: subjects,
+        datasets: [{
+            label: 'Present',
+            backgroundColor: 'rgba(60,141,188,0.9)',
+            data: data_present
+        }, {
+            label: 'Absent',
+            backgroundColor: 'rgba(210, 214, 222, 1)',
+            data: data_absent
+        }]
+    };
+    var barChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero: true
+                }
+            }]
+        }
+    };
+    var barChart = new Chart(barChartCanvas, {
+        type: 'bar', 
+        data: barChartData,
+        options: barChartOptions
+    });
+});
+</script>
+{% endblock custom_js %}

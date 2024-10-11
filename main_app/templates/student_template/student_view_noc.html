@@ -1,0 +1,76 @@
+{% extends 'main_app/base.html' %}
+{% load static %}
+{% block page_title %}{{page_title}}{% endblock page_title %}
+
+{% block content %}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">{{page_title}}</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Subject</th>
+                                    <th>Staff</th>
+                                    <th>Attendance</th>
+                                    <th>Submission</th>
+                                    <th>Signature of Staff</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for noc in results %}
+                                <tr>
+                                    <td>{{ noc.id }}</td>   
+                                    <td>{{ noc.subject }}</td>
+                                    <td>{{ noc.staff }}</td>
+                                    <td>{{ noc.attendance }}</td>   
+                                    <td>{{ noc.submission }}</td>
+                                    <td>{{ noc.signature_of_staff }}</td>   
+
+                                    <td>
+                                        <button class="btn btn-primary submit-assignment" data-subject-id="{{ noc.id }}">
+                                            {% if noc.submission %}Submitted{% else %}Submit Assignment{% endif %}
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock content %}
+
+<script>
+$(document).ready(function() {
+    $('.submit-assignment').click(function() {
+        var subjectId = $(this).data('subject-id');
+        var button = $(this);
+        
+        $.ajax({
+            url: "{% url 'submit_assignment' %}",
+            type: "POST",
+            data: {
+                subject_id: subjectId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                alert(response.message);
+                button.text('Submitted');
+            },
+            error: function() {
+                alert('Error submitting assignment');
+            }
+        });
+    });
+});
+</script>

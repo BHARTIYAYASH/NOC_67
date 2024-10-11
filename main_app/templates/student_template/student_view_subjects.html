@@ -1,0 +1,86 @@
+{% extends 'main_app/base.html' %}
+{% load static %}
+{% block page_title %}{{ page_title }}{% endblock page_title %}
+
+{% block content %}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Subjects</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Subject</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject in subjects %}
+                                <tr>
+                                    <td>{{ subject.id }}</td>
+                                    <td>{{ subject.name }}</td>
+                                    <td>
+                                        <button class="btn btn-primary submit-assignment" data-subject-id="{{ subject.id }}" data-toggle="modal" data-target="#confirmationModal">Assignment Submitted?</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationModalLabel">Confirm Submission</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you have submitted all assignments?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                <button type="button" class="btn btn-primary" id="confirmSubmit">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block custom_js %}
+<script>
+    $(document).ready(function() {
+        let subjectId;
+
+        // When the submit assignment button is clicked
+        $('.submit-assignment').click(function() {
+            subjectId = $(this).data('subject-id');
+        });
+
+        // When the confirm button in the modal is clicked
+        $('#confirmSubmit').click(function() {
+            // Here you can add your logic to handle the assignment submission
+            // For example, you can make an AJAX call to submit the assignment
+
+            // Show success message
+            alert("Assignments submitted successfully!");
+            $('#confirmationModal').modal('hide');
+        });
+    });
+</script>
+{% endblock custom_js %}

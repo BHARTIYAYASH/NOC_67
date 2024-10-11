@@ -1,0 +1,82 @@
+{% extends 'main_app/base.html' %}
+{% load static %}
+{% block page_title %}{{page_title}}{% endblock page_title %}
+{% block content %}
+<div class="content-wrapper">
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Student NOC Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4>Student Information</h4>
+                            <p><strong>Name:</strong> {{ student.admin.first_name }} {{ student.admin.last_name }}</p>
+                            <p><strong>SN:</strong> {{ student.id }}</p>
+                            <p><strong>Email:</strong> {{ student.admin.email }}</p>
+
+                            <h4>Subject Details</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Attendance</th>
+                                        <th>Assignment Status</th>
+                                        <th>NOC Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for subject in subjects %}
+                                    <tr>
+                                        <td>{{ subject.subject.name }}</td>
+                                        <td>{{ subject.attendance }}</td>
+                                        <td id="assignment-status-{{ subject.subject.id }}">
+                                            {% if subject.assignment_status %}Submitted{% else %}Not Submitted{% endif %}
+                                        </td>
+                                        <td>{% if subject.noc_status %}Signed{% else %}Not Signed{% endif %}</td>
+                                        <td>
+                                            {% if subject.can_sign and not subject.noc_status %}
+                                                <a href="{% url 'SIGN_NOC' student.id subject.subject.id %}" class="btn btn-success">Sign NOC</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock content %}
+
+{% block custom_js %}
+<script>
+function updateAssignmentStatus(studentId, subjectId) {
+    $.ajax({
+        url: "{% url 'get_assignment_status' %}",
+        type: "POST",
+        data: {
+            student_id: studentId,
+            subject_id: subjectId,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+            $('#assignment-status-' + subjectId).text(response.status);
+        }
+    });
+}
+
+// Call this function every 5 seconds for each subject
+{% for subject in subjects %}
+setInterval(function() {
+    updateAssignmentStatus({{ student.id }}, {{ subject.subject.id }});
+}, 5000);
+{% endfor %}
+</script>
+{% endblock custom_js %}
