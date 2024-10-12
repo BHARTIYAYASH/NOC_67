@@ -105,21 +105,24 @@ def student_check_noc(request):
         else:
             attendance_percent = 0
         
+        noc = NOC.objects.filter(student=student, subject=subject).first()
+        assignment_submission = AssignmentSubmission.objects.filter(student=student, subject=subject, submitted=True).exists()
+        
         results.append({
             'id': subject.id,
             'subject': subject.name,
             'staff': f"{subject.staff.admin.first_name} {subject.staff.admin.last_name}",
             'attendance': f"{attendance_percent:.2f}%",
-            'submission': False,  # Default value, you'll need to implement a way to track submissions
-            'signature_of_staff': ''  # You may want to implement this feature later
+            'submission': 'Submitted' if assignment_submission else 'Not Submitted',
+            'signature_of_staff': 'Signed' if noc else 'Not Signed'
         })
     
     context = {
+        'student': student,
         'results': results,
         'page_title': 'Check NOC'
     }
     return render(request, "student_template/student_view_noc.html", context)
-
 
 def check_noc_status(request):
     student = get_object_or_404(Student, admin=request.user)
@@ -264,6 +267,9 @@ def student_view_subjects(request):
     }
     return render(request, 'student_template/student_view_subjects.html', context)
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 @csrf_exempt
 def submit_assignment(request):
     if request.method == 'POST':
@@ -277,10 +283,17 @@ def submit_assignment(request):
             defaults={'submitted': True, 'submission_date': timezone.now()}
         )
         
-        if created:
-            message = 'Assignment submitted successfully!'
-        else:
-            message = 'Assignment submission updated!'
+        message = 'Assignment submitted successfully!' if created else 'Assignment submission updated!'
+
+        # Notify via WebSocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            'assignment_status',
+            {
+                'type': 'status_update',
+                'message': f'Assignment for subject {subject_id} submitted by {student.admin.first_name}'
+            }
+        )
 
         return JsonResponse({'message': message})
     else:

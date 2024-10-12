@@ -113,6 +113,7 @@ class Attendance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class Assignment(models.Model):
+    
     title = models.CharField(max_length=255)
     subject = models.ForeignKey('Subject', on_delete=models.CASCADE)
     due_date = models.DateField()

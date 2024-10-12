@@ -10,6 +10,7 @@ from django.shortcuts import (HttpResponseRedirect, get_object_or_404,redirect, 
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from .forms import *
 from .models import *
@@ -214,7 +215,7 @@ def student_noc_details(request, student_id):
                 'assignment_status': AssignmentSubmission.objects.filter(student=student, subject=subject, submitted=True).exists(),
                 'noc_status': NOC.objects.filter(student=student, subject=subject).exists(),
                 'can_sign': subject.staff == staff
-            } for subject in subjects
+            } for subject in subjects if subject.staff == staff
         ],
         'page_title': 'Student NOC Details'
     }
@@ -261,16 +262,15 @@ def SIGN_NOC(request, student_id, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
 
     if subject.staff != staff:
-        messages.error(request, "You are not authorized to sign this NOC.")
-        return redirect('student_noc_details', student_id=student_id)
+        return JsonResponse({'status': 'error', 'message': "You are not authorized to sign this NOC."}, status=403)
 
     noc, created = NOC.objects.get_or_create(student=student, subject=subject)
     if created:
-        messages.success(request, f"NOC signed for {student.admin.first_name} {student.admin.last_name} in {subject.name}")
+        message = f"NOC signed for {student.admin.first_name} {student.admin.last_name} in {subject.name}"
     else:
-        messages.info(request, f"NOC was already signed for {student.admin.first_name} {student.admin.last_name} in {subject.name}")
+        message = f"NOC was already signed for {student.admin.first_name} {student.admin.last_name} in {subject.name}"
 
-    return redirect('student_noc_details', student_id=student_id)
+    return JsonResponse({'status': 'success', 'message': message})
 
     
     
@@ -434,3 +434,31 @@ def fetch_student_result(request):
         return HttpResponse(json.dumps(result_data))
     except Exception as e:
         return HttpResponse('False')
+
+
+@csrf_exempt
+def collect_assignments(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+    subject_id = request.POST.get('subject_id')
+    student_id = request.POST.get('student_id')
+
+    if not subject_id or not student_id:
+        return JsonResponse({'status': 'error', 'message': 'Missing subject_id or student_id'}, status=400)
+
+    try:
+        subject = Subject.objects.get(id=subject_id)
+        student = Student.objects.get(id=student_id)
+        assignment_submission, created = AssignmentSubmission.objects.get_or_create(
+            student=student,
+            subject=subject,
+            defaults={'submitted': True}
+        )
+        if not created:
+            assignment_submission.submitted = True
+            assignment_submission.save()
+
+        return JsonResponse({'status': 'success', 'message': 'Assignments collected successfully'})
+    except (Subject.DoesNotExist, Student.DoesNotExist):
+        return JsonResponse({'status': 'error', 'message': 'Invalid subject or student'}, status=400)

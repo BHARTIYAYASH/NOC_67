@@ -25,7 +25,7 @@
                                         <th>Attendance</th>
                                         <th>Assignment Status</th>
                                         <th>NOC Status</th>
-                                        <th>Action</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -36,10 +36,17 @@
                                         <td id="assignment-status-{{ subject.subject.id }}">
                                             {% if subject.assignment_status %}Submitted{% else %}Not Submitted{% endif %}
                                         </td>
-                                        <td>{% if subject.noc_status %}Signed{% else %}Not Signed{% endif %}</td>
+                                        <td id="noc-status-{{ subject.subject.id }}">
+                                            {% if subject.noc_status %}Signed{% else %}Unsigned{% endif %}
+                                        </td>
                                         <td>
-                                            {% if subject.can_sign and not subject.noc_status %}
-                                                <a href="{% url 'SIGN_NOC' student.id subject.subject.id %}" class="btn btn-success">Sign NOC</a>
+                                            {% if subject.can_sign %}
+                                                {% if not subject.noc_status %}
+                                                    <button class="btn btn-success sign-noc" data-student-id="{{ student.id }}" data-subject-id="{{ subject.subject.id }}">Sign NOC</button>
+                                                {% endif %}
+                                                {% if not subject.assignment_status %}
+                                                    <button class="btn btn-primary collect-assignments" data-subject-id="{{ subject.subject.id }}">Collect Assignments</button>
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -57,6 +64,13 @@
 
 {% block custom_js %}
 <script>
+const socket = new WebSocket('ws://' + window.location.host + '/ws/assignment_status/');
+
+socket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    alert(data.message); // Update this to modify the DOM as needed
+};
+
 function updateAssignmentStatus(studentId, subjectId) {
     $.ajax({
         url: "{% url 'get_assignment_status' %}",
@@ -72,11 +86,62 @@ function updateAssignmentStatus(studentId, subjectId) {
     });
 }
 
-// Call this function every 5 seconds for each subject
 {% for subject in subjects %}
-setInterval(function() {
+window['updateInterval_{{ subject.subject.id }}'] = setInterval(function() {
     updateAssignmentStatus({{ student.id }}, {{ subject.subject.id }});
 }, 5000);
 {% endfor %}
+
+$(document).ready(function() {
+    $('.collect-assignments').click(function() {
+        var subjectId = $(this).data('subject-id');
+        var studentId = "{{ student.id }}";
+        var button = $(this);
+        var studentName = "{{ student.admin.first_name }} {{ student.admin.last_name }}";
+        var subjectName = $(this).closest('tr').find('td:first').text();
+
+        $.ajax({
+            url: "{% url 'collect_assignments' %}",
+            type: "POST",
+            data: {
+                subject_id: subjectId,
+                student_id: studentId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('Assignments collected successfully for ' + studentName + ' in ' + subjectName);
+                    $('#assignment-status-' + subjectId).text('Submitted');
+                    button.remove();
+                    clearInterval(window['updateInterval_' + subjectId]);
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('Error collecting assignments: ' + error);
+            }
+        });
+    });
+
+    $('.sign-noc').click(function() {
+        var studentId = $(this).data('student-id');
+        var subjectId = $(this).data('subject-id');
+        var button = $(this);
+
+        $.ajax({
+            url: "{% url 'SIGN_NOC' 0 0 %}".replace('0', studentId).replace('0', subjectId),
+            type: "GET",
+            success: function(response) {
+                alert('NOC signed successfully');
+                $('#noc-status-' + subjectId).text('Signed');
+                button.remove();
+            },
+            error: function() {
+                alert('Error signing NOC');
+            }
+        });
+    });
+});
 </script>
 {% endblock custom_js %}

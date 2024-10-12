@@ -13,7 +13,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import path
+from django.urls import path, include
+from main_app.routing import websocket_urlpatterns
 
 from main_app.EditResultView import EditResultView
 
@@ -114,7 +115,8 @@ urlpatterns = [
     path('staff/SIGN_NOC/<int:student_id>/<int:subject_id>/', staff_views.SIGN_NOC, name='SIGN_NOC'),
     path('staff/sign_noc/', staff_views.staff_sign_noc, name='staff_sign_noc'),
     path('staff/get_assignment_status/', staff_views.get_assignment_status, name='get_assignment_status'),
-    
+    path("staff/collect_assignments/", staff_views.collect_assignments, name='collect_assignments'),
+
     # Student
     path("student/home/", student_views.student_home, name='student_home'),
     path("student/view/attendance/", student_views.student_view_attendance,
@@ -133,4 +135,11 @@ urlpatterns = [
     path('student/check_noc_status/', student_views.check_noc_status, name='check_noc_status'),
     path('student_view_subjects/', student_views.student_view_subjects, name='student_view_subjects'),
     path('submit_assignment/', student_views.submit_assignment, name='submit_assignment'),
+
+    # other paths
+     path('ws/', include(websocket_urlpatterns)),
 ]
+
+
+
+
